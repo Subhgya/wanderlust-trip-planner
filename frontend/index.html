@@ -1,0 +1,533 @@
+<!doctype html>
+<html lang="en" class="h-full">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wanderlust Trip Planner</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700&amp;family=Playfair+Display:wght@400;600;700&amp;display=swap" rel="stylesheet">
+  <style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+  font-family: 'DM Sans', sans-serif;
+
+  background: radial-gradient(
+      circle at 20% 20%,
+      rgba(56, 189, 248, 0.15),
+      transparent 40%
+    ),
+    radial-gradient(
+      circle at 80% 80%,
+      rgba(16, 185, 129, 0.15),
+      transparent 40%
+    ),
+    linear-gradient(
+      135deg,
+      #0f172a,
+      #1e293b,
+      #020617
+    );
+
+  color: white;
+}
+
+  .glass-card {
+    background: rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(255,255,255,0.1);
+  }
+
+  .trip-card {
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+  }
+  .trip-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 40px rgba(0,0,0,0.3);
+  }
+
+  
+  .trip-card {
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(18px);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 18px;
+  padding: 20px;
+
+  box-shadow: 
+    0 8px 32px rgba(0,0,0,0.3),
+    inset 0 1px 0 rgba(255,255,255,0.05);
+
+  transition: all 0.3s ease;
+}
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .fade-up { animation: fadeUp 0.5s ease forwards; }
+  .fade-up-d1 { animation-delay: 0.1s; opacity: 0; }
+  .fade-up-d2 { animation-delay: 0.2s; opacity: 0; }
+  .fade-up-d3 { animation-delay: 0.3s; opacity: 0; }
+
+  @keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+  .shimmer-btn {
+    background-size: 200% 100%;
+    animation: shimmer 3s linear infinite;
+  }
+
+  .itinerary-day {
+    animation: fadeUp 0.4s ease forwards;
+    opacity: 0;
+  }
+
+  input, select, textarea {
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+  input:focus, select:focus, textarea:focus {
+    border-color: #6ee7b7 !important;
+    box-shadow: 0 0 0 3px rgba(110,231,183,0.15);
+  }
+
+  .toast-enter { animation: fadeUp 0.3s ease forwards; }
+
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: rgba(255,255,255,0.03); }
+  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 3px; }
+  
+  body::before {
+  content: "";
+  position: fixed;
+  width: 400px;
+  height: 400px;
+  background: radial-gradient(circle, rgba(16,185,129,0.2), transparent);
+  top: 20%;
+  right: 10%;
+  filter: blur(100px);
+  z-index: 0;
+}
+
+</style>
+  <style>body { box-sizing: border-box; }</style>
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+ </head>
+ <body class="h-full">
+  <div id="app" class="h-full w-full overflow-auto"><!-- Toast container -->
+   <div id="toast-container" class="fixed top-4 right-4 z-50 flex flex-col gap-2"></div><!-- HEADER -->
+   <header class="w-full px-6 py-5 flex items-center justify-between" style="background: rgba(15,23,42,0.7); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(255,255,255,0.06);">
+    <div class="flex items-center gap-3">
+     <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background: linear-gradient(135deg, #6ee7b7, #3b82f6);"><i data-lucide="compass" style="width:20px;height:20px;color:#0f172a;"></i>
+     </div>
+     <div>
+      <h1 id="app-title" class="text-xl font-bold" style="font-family:'Playfair Display',serif;color:#f1f5f9;">Wanderlust</h1>
+      <p id="app-subtitle" class="text-xs" style="color:#6ee7b7;">AI Trip Planner</p>
+     </div>
+    </div>
+    <div class="flex items-center gap-3">
+     <button id="new-trip-btn" onclick="showView('form')" class="shimmer-btn px-5 py-2.5 rounded-xl text-sm font-semibold flex items-center gap-2" style="background: linear-gradient(90deg, #6ee7b7, #3b82f6, #6ee7b7); color: #0f172a;"> <i data-lucide="plus" style="width:16px;height:16px;"></i> <span id="cta-text">Plan a New Trip</span> </button> <button onclick="showView('profile')" class="px-3 py-2.5 rounded-xl text-sm font-medium flex items-center gap-2" style="background:rgba(255,255,255,0.08);color:#94a3b8;border:1px solid rgba(255,255,255,0.1);"> <i data-lucide="user" style="width:16px;height:16px;"></i> </button>
+    </div>
+   </header><!-- MAIN CONTENT -->
+   <main class="w-full max-w-6xl mx-auto px-4 py-8"><!-- TRIPS LIST VIEW -->
+    <div id="view-list"><!-- Empty state -->
+     <div id="empty-state" class="flex flex-col items-center justify-center py-20 fade-up">
+      <div class="w-24 h-24 rounded-full flex items-center justify-center mb-6" style="background: rgba(110,231,183,0.1); border: 2px dashed rgba(110,231,183,0.3);"><i data-lucide="map-pin" style="width:40px;height:40px;color:#6ee7b7;"></i>
+      </div>
+      <h2 class="text-2xl font-bold mb-2" style="font-family:'Playfair Display',serif;color:#f1f5f9;">No trips planned yet</h2>
+      <p class="text-sm mb-6" style="color:#94a3b8;">Start your next adventure by planning a trip</p>
+     </div><!-- Trip cards grid -->
+     <div id="trips-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"></div>
+    </div><!-- TRIP FORM VIEW -->
+    <div id="view-form" class="hidden max-w-2xl mx-auto"><button onclick="showView('list')" class="flex items-center gap-2 mb-6 text-sm" style="color:#94a3b8;"> <i data-lucide="arrow-left" style="width:16px;height:16px;"></i> Back to trips </button>
+     <div class="glass-card rounded-2xl p-8 fade-up">
+      <h2 class="text-2xl font-bold mb-1" style="font-family:'Playfair Display',serif;color:#f1f5f9;">Plan Your Trip</h2>
+      <p class="text-sm mb-8" style="color:#94a3b8;">Fill in the details and get an AI-generated itinerary</p>
+      <form id="trip-form" onsubmit="handleFormSubmit(event)" class="space-y-5">
+       <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <div><label for="f-name" class="block text-xs font-medium mb-1.5" style="color:#94a3b8;">Trip Name</label> <input id="f-name" type="text" required placeholder="Summer in Tokyo" class="w-full px-4 py-3 rounded-xl text-sm outline-none" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#f1f5f9;">
+        </div>
+        <div><label for="f-dest" class="block text-xs font-medium mb-1.5" style="color:#94a3b8;">Destination</label> <input id="f-dest" type="text" required placeholder="Tokyo, Japan" class="w-full px-4 py-3 rounded-xl text-sm outline-none" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#f1f5f9;">
+        </div>
+       </div>
+       <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <div><label for="f-start" class="block text-xs font-medium mb-1.5" style="color:#94a3b8;">Start Date</label> <input id="f-start" type="date" required class="w-full px-4 py-3 rounded-xl text-sm outline-none" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#f1f5f9;">
+        </div>
+        <div><label for="f-end" class="block text-xs font-medium mb-1.5" style="color:#94a3b8;">End Date</label> <input id="f-end" type="date" required class="w-full px-4 py-3 rounded-xl text-sm outline-none" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#f1f5f9;">
+        </div>
+       </div>
+       <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <div><label for="f-budget" class="block text-xs font-medium mb-1.5" style="color:#94a3b8;">Budget</label> <select id="f-budget" class="w-full px-4 py-3 rounded-xl text-sm outline-none" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#f1f5f9;"> <option value="Budget">Budget ($)</option> <option value="Mid-range">Mid-range ($$)</option> <option value="Luxury">Luxury ($$$)</option> </select>
+        </div>
+        <div><label for="f-travelers" class="block text-xs font-medium mb-1.5" style="color:#94a3b8;">Travelers</label> <input id="f-travelers" type="number" min="1" max="20" value="2" class="w-full px-4 py-3 rounded-xl text-sm outline-none" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#f1f5f9;">
+        </div>
+        <div><label for="f-style" class="block text-xs font-medium mb-1.5" style="color:#94a3b8;">Travel Style</label> <select id="f-style" class="w-full px-4 py-3 rounded-xl text-sm outline-none" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#f1f5f9;"> <option value="Adventure">Adventure</option> <option value="Cultural">Cultural</option> <option value="Relaxation">Relaxation</option> <option value="Foodie">Foodie</option> <option value="Nature">Nature</option> <option value="City">City Explorer</option> </select>
+        </div>
+       </div>
+       <div><label for="f-notes" class="block text-xs font-medium mb-1.5" style="color:#94a3b8;">Special Requests</label> <textarea id="f-notes" rows="3" placeholder="Any preferences, must-visit places, dietary needs..." class="w-full px-4 py-3 rounded-xl text-sm outline-none resize-none" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#f1f5f9;"></textarea>
+       </div><button id="submit-btn" type="submit" class="w-full shimmer-btn px-6 py-3.5 rounded-xl font-semibold flex items-center justify-center gap-2" style="background: linear-gradient(90deg, #6ee7b7, #3b82f6, #6ee7b7); color: #0f172a;"> <i data-lucide="sparkles" style="width:18px;height:18px;"></i> Generate AI Itinerary </button>
+      </form>
+     </div>
+    </div><!-- TRIP DETAIL VIEW -->
+    <div id="view-detail" class="hidden max-w-3xl mx-auto"><button onclick="showView('list')" class="flex items-center gap-2 mb-6 text-sm" style="color:#94a3b8;"> <i data-lucide="arrow-left" style="width:16px;height:16px;"></i> Back to trips </button>
+     <div id="detail-content"></div>
+    </div><!-- TRAVELER PROFILE VIEW -->
+    <div id="view-profile" class="hidden max-w-2xl mx-auto"><button onclick="showView('list')" class="flex items-center gap-2 mb-6 text-sm" style="color:#94a3b8;"> <i data-lucide="arrow-left" style="width:16px;height:16px;"></i> Back to trips </button>
+     <div class="glass-card rounded-2xl p-8 fade-up mb-6">
+      <div class="flex items-center gap-3 mb-6">
+       <div class="w-12 h-12 rounded-xl flex items-center justify-center text-2xl" style="background:linear-gradient(135deg, #6ee7b7, #3b82f6);">
+        👤
+       </div>
+       <h2 class="text-2xl font-bold" style="font-family:'Playfair Display',serif;color:#f1f5f9;">Traveler Profile</h2>
+      </div>
+      <form id="profile-form" onsubmit="handleProfileSubmit(event)" class="space-y-5">
+       <div><label for="p-name" class="block text-xs font-medium mb-1.5" style="color:#94a3b8;">Full Name</label> <input id="p-name" type="text" placeholder="Your name" class="w-full px-4 py-3 rounded-xl text-sm outline-none" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#f1f5f9;">
+       </div>
+       <div><label for="p-email" class="block text-xs font-medium mb-1.5" style="color:#94a3b8;">Email Address</label> <input id="p-email" type="email" placeholder="your@email.com" class="w-full px-4 py-3 rounded-xl text-sm outline-none" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#f1f5f9;">
+       </div>
+       <div><label for="p-interests" class="block text-xs font-medium mb-1.5" style="color:#94a3b8;">Travel Interests</label> <textarea id="p-interests" rows="3" placeholder="e.g., beaches, hiking, museums, local cuisine..." class="w-full px-4 py-3 rounded-xl text-sm outline-none resize-none" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#f1f5f9;"></textarea>
+       </div><button type="submit" class="w-full shimmer-btn px-6 py-3.5 rounded-xl font-semibold flex items-center justify-center gap-2" style="background: linear-gradient(90deg, #6ee7b7, #3b82f6, #6ee7b7); color: #0f172a;"> <i data-lucide="save" style="width:18px;height:18px;"></i> Save Profile </button>
+      </form>
+     </div><button onclick="showView('pricing')" class="w-full glass-card rounded-2xl p-6 flex items-center justify-between hover:bg-opacity-20 transition-all" style="border:1px solid rgba(110,231,183,0.3);">
+      <div class="flex items-center gap-4">
+       <div class="w-12 h-12 rounded-xl flex items-center justify-center" style="background:rgba(251,191,36,0.1);color:#fbbf24;"><i data-lucide="credit-card" style="width:20px;height:20px;"></i>
+       </div>
+       <div class="text-left">
+        <p class="text-sm font-semibold" style="color:#f1f5f9;">Premium Access</p>
+        <p class="text-xs" style="color:#94a3b8;">Unlock advanced features</p>
+       </div>
+      </div><i data-lucide="chevron-right" style="width:18px;height:18px;color:#94a3b8;"></i> </button>
+    </div><!-- PRICING VIEW -->
+    <div id="view-pricing" class="hidden max-w-2xl mx-auto"><button onclick="showView('profile')" class="flex items-center gap-2 mb-6 text-sm" style="color:#94a3b8;"> <i data-lucide="arrow-left" style="width:16px;height:16px;"></i> Back to profile </button>
+     <h2 class="text-2xl font-bold mb-6" style="font-family:'Playfair Display',serif;color:#f1f5f9;">Premium Plans</h2>
+     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+      <div class="glass-card rounded-2xl p-8 border-2 fade-up" style="border-color:rgba(255,255,255,0.1);">
+       <h3 class="text-lg font-bold mb-1" style="color:#f1f5f9;">Basic</h3>
+       <p class="text-sm mb-6" style="color:#94a3b8;">Perfect for occasional travelers</p>
+       <div class="mb-6"><span class="text-3xl font-bold" style="color:#f1f5f9;">$9.99</span> <span style="color:#64748b;">/month</span>
+       </div>
+       <ul class="space-y-3 mb-8 text-sm" style="color:#cbd5e1;">
+        <li class="flex items-center gap-2"><i data-lucide="check-circle" style="width:16px;height:16px;color:#6ee7b7;"></i> 10 trips/month</li>
+        <li class="flex items-center gap-2"><i data-lucide="check-circle" style="width:16px;height:16px;color:#6ee7b7;"></i> AI itineraries</li>
+        <li class="flex items-center gap-2"><i data-lucide="check-circle" style="width:16px;height:16px;color:#6ee7b7;"></i> Email support</li>
+       </ul><button onclick="startCheckout('Basic', 9.99)" class="w-full px-6 py-3 rounded-xl font-semibold" style="background:rgba(110,231,183,0.2);color:#6ee7b7;border:1px solid rgba(110,231,183,0.4);">Choose Plan</button>
+      </div>
+      <div class="glass-card rounded-2xl p-8 border-2 fade-up fade-up-d1" style="border-color:#6ee7b7;">
+       <div class="px-3 py-1 rounded-full text-xs font-bold mb-3 w-fit" style="background:rgba(110,231,183,0.2);color:#6ee7b7;">
+        POPULAR
+       </div>
+       <h3 class="text-lg font-bold mb-1" style="color:#f1f5f9;">Premium</h3>
+       <p class="text-sm mb-6" style="color:#94a3b8;">For serious adventurers</p>
+       <div class="mb-6"><span class="text-3xl font-bold" style="color:#6ee7b7;">$24.99</span> <span style="color:#64748b;">/month</span>
+       </div>
+       <ul class="space-y-3 mb-8 text-sm" style="color:#cbd5e1;">
+        <li class="flex items-center gap-2"><i data-lucide="check-circle" style="width:16px;height:16px;color:#6ee7b7;"></i> Unlimited trips</li>
+        <li class="flex items-center gap-2"><i data-lucide="check-circle" style="width:16px;height:16px;color:#6ee7b7;"></i> AI itineraries</li>
+        <li class="flex items-center gap-2"><i data-lucide="check-circle" style="width:16px;height:16px;color:#6ee7b7;"></i> Chatbot assistant</li>
+        <li class="flex items-center gap-2"><i data-lucide="check-circle" style="width:16px;height:16px;color:#6ee7b7;"></i> Priority support</li>
+       </ul><button onclick="startCheckout('Premium', 24.99)" class="w-full px-6 py-3 rounded-xl font-semibold" style="background:linear-gradient(90deg, #6ee7b7, #3b82f6);color:#0f172a;">Upgrade Now</button>
+      </div>
+     </div>
+    </div><!-- CHECKOUT VIEW -->
+    <div id="view-checkout" class="hidden max-w-2xl mx-auto"><button onclick="showView('pricing')" class="flex items-center gap-2 mb-6 text-sm" style="color:#94a3b8;"> <i data-lucide="arrow-left" style="width:16px;height:16px;"></i> Back to plans </button>
+     <div class="glass-card rounded-2xl p-8 fade-up mb-6">
+      <div class="flex items-center gap-3 mb-6">
+       <div class="px-3 py-1.5 rounded-lg text-xs font-bold" style="background:rgba(251,191,36,0.2);color:#fbbf24;">
+        DEMO CHECKOUT
+       </div>
+       <p class="text-sm" style="color:#94a3b8;">This is a simulated checkout experience</p>
+      </div>
+      <div class="mb-6 p-4 rounded-xl" style="background:rgba(255,255,255,0.04);border-left:3px solid #6ee7b7;">
+       <p class="text-xs mb-2" style="color:#64748b;">Selected Plan</p>
+       <p class="text-lg font-bold" style="color:#f1f5f9;"><span id="checkout-plan">Premium</span> - <span id="checkout-price">$24.99</span>/month</p>
+      </div>
+      <form id="checkout-form" onsubmit="handleCheckoutSubmit(event)" class="space-y-5">
+       <div><label for="c-name" class="block text-xs font-medium mb-1.5" style="color:#94a3b8;">Full Name</label> <input id="c-name" type="text" required placeholder="John Doe" class="w-full px-4 py-3 rounded-xl text-sm outline-none" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#f1f5f9;">
+       </div>
+       <div><label for="c-email" class="block text-xs font-medium mb-1.5" style="color:#94a3b8;">Email</label> <input id="c-email" type="email" required placeholder="john@example.com" class="w-full px-4 py-3 rounded-xl text-sm outline-none" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#f1f5f9;">
+       </div>
+       <div><label for="c-card" class="block text-xs font-medium mb-1.5" style="color:#94a3b8;">Card Number (Demo)</label> <input id="c-card" type="text" required placeholder="4242 4242 4242 4242" maxlength="19" class="w-full px-4 py-3 rounded-xl text-sm outline-none font-mono" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#f1f5f9;">
+       </div>
+       <div class="grid grid-cols-2 gap-4">
+        <div><label for="c-exp" class="block text-xs font-medium mb-1.5" style="color:#94a3b8;">Exp Date</label> <input id="c-exp" type="text" required placeholder="12/25" maxlength="5" class="w-full px-4 py-3 rounded-xl text-sm outline-none font-mono" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#f1f5f9;">
+        </div>
+        <div><label for="c-cvc" class="block text-xs font-medium mb-1.5" style="color:#94a3b8;">CVC</label> <input id="c-cvc" type="text" required placeholder="123" maxlength="3" class="w-full px-4 py-3 rounded-xl text-sm outline-none font-mono" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#f1f5f9;">
+        </div>
+       </div><button type="submit" id="pay-btn" class="w-full shimmer-btn px-6 py-3.5 rounded-xl font-semibold flex items-center justify-center gap-2" style="background: linear-gradient(90deg, #6ee7b7, #3b82f6, #6ee7b7); color: #0f172a;"> <i data-lucide="check-circle" style="width:18px;height:18px;"></i> Confirm Payment </button>
+      </form>
+     </div>
+     <div id="payment-success" class="hidden glass-card rounded-2xl p-8 fade-up text-center">
+      <div class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4" style="background:rgba(110,231,183,0.15);">
+       <i data-lucide="check-circle" style="width:32px;height:32px;color:#6ee7b7;"></i>
+      </div>
+      <h3 class="text-2xl font-bold mb-2" style="font-family:'Playfair Display',serif;color:#f1f5f9;">Payment Successful!</h3>
+      <p class="text-sm mb-6" style="color:#94a3b8;">Your subscription to <strong id="success-plan">Premium</strong> is now active.</p><button onclick="showView('list')" class="px-6 py-2.5 rounded-xl font-semibold" style="background:rgba(110,231,183,0.2);color:#6ee7b7;border:1px solid rgba(110,231,183,0.4);">Back to Trips</button>
+     </div>
+    </div><!-- CHATBOT VIEW -->
+    <div id="view-chat" class="hidden fixed bottom-4 right-4 flex flex-col w-96 h-96" style="z-index:40;">
+     <div id="chat-header" class="glass-card rounded-t-2xl p-4 flex items-center justify-between cursor-pointer" onclick="toggleChat()" style="border-bottom:1px solid rgba(255,255,255,0.1);">
+      <div class="flex items-center gap-2">
+       <i data-lucide="message-circle" style="width:18px;height:18px;color:#6ee7b7;"></i> <span class="text-sm font-semibold" style="color:#f1f5f9;">Travel Assistant</span>
+      </div><button onclick="event.stopPropagation(); toggleChat()" class="px-2 py-1"><i data-lucide="x" style="width:16px;height:16px;color:#94a3b8;"></i></button>
+     </div>
+     <div id="chat-messages" class="glass-card flex-1 overflow-y-auto p-4 space-y-3" style="background:rgba(255,255,255,0.04);"></div>
+     <form id="chat-form" onsubmit="handleChatSubmit(event)" class="glass-card rounded-b-2xl p-4 flex gap-2" style="border-top:1px solid rgba(255,255,255,0.1);">
+      <input id="chat-input" type="text" placeholder="Ask about travel..." class="flex-1 px-3 py-2 rounded-lg text-sm outline-none" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#f1f5f9;"> <button type="submit" class="px-3 py-2 rounded-lg font-semibold flex items-center" style="background:rgba(110,231,183,0.2);color:#6ee7b7;"><i data-lucide="send" style="width:16px;height:16px;"></i></button>
+     </form>
+    </div><button id="chat-toggle-btn" onclick="toggleChat()" class="fixed bottom-4 right-4 w-14 h-14 rounded-full flex items-center justify-center text-lg shadow-lg hover:scale-110 transition-transform" style="background:linear-gradient(135deg, #6ee7b7, #3b82f6);z-index:35;">💬</button>
+   </main>
+  </div>
+  <script>
+const API = "";
+
+let allTrips = [];
+let currentView = 'list';
+
+// ---------------- TOAST ----------------
+function showToast(msg, type = 'success') {
+  const c = document.getElementById('toast-container');
+  const t = document.createElement('div');
+  t.className = 'toast-enter px-4 py-3 rounded-xl text-sm font-medium flex items-center gap-2';
+  t.style.cssText = type === 'success'
+    ? 'background:#065f46;color:#6ee7b7;border:1px solid rgba(110,231,183,0.3);'
+    : 'background:#7f1d1d;color:#fca5a5;border:1px solid rgba(252,165,165,0.3);';
+  t.innerHTML = msg;
+  c.appendChild(t);
+  setTimeout(() => t.remove(), 3000);
+}
+
+// ---------------- VIEW ----------------
+function showView(view) {
+  currentView = view;
+  document.getElementById('view-list').classList.toggle('hidden', view !== 'list');
+  document.getElementById('view-form').classList.toggle('hidden', view !== 'form');
+  document.getElementById('view-detail').classList.toggle('hidden', view !== 'detail');
+  document.getElementById('view-profile').classList.toggle('hidden', view !== 'profile');
+  document.getElementById('view-pricing').classList.toggle('hidden', view !== 'pricing');
+  document.getElementById('view-checkout').classList.toggle('hidden', view !== 'checkout');
+}
+
+// ---------------- LOAD TRIPS ----------------
+async function loadTrips() {
+  const res = await fetch(API + "/get_trips");
+  const data = await res.json();
+
+  allTrips = data.map(t => ({
+    ...t,
+    __backendId: t.id
+  }));
+
+  renderTrips();
+}
+
+// ---------------- RENDER ----------------
+function renderTrips() {
+  const grid = document.getElementById('trips-grid');
+  const empty = document.getElementById('empty-state');
+
+  if (allTrips.length === 0) {
+    empty.classList.remove('hidden');
+    grid.innerHTML = '';
+    return;
+  }
+
+  empty.classList.add('hidden');
+  grid.innerHTML = "";
+
+  allTrips.forEach(trip => {
+    grid.innerHTML += `
+      <div class="trip-card glass-card rounded-2xl p-6">
+        <h3 style="color:white">${trip.trip_name}</h3>
+        <p style="color:#94a3b8">${trip.destination}</p>
+
+        <div style="margin-top:10px;">
+          <button onclick="showDetail(${trip.__backendId})">View</button>
+          <button onclick="executeDelete(${trip.__backendId})">Delete</button>
+          <button onclick="pay()">Pay</button>
+        </div>
+
+      </div>
+    `;
+  });
+}
+
+// ---------------- ADD TRIP ----------------
+async function handleFormSubmit(e) {
+  e.preventDefault();
+
+  const trip = {
+    trip_name: document.getElementById('f-name').value,
+    destination: document.getElementById('f-dest').value,
+    start_date: document.getElementById('f-start').value,
+    end_date: document.getElementById('f-end').value,
+    budget: document.getElementById('f-budget').value,
+    travelers: parseInt(document.getElementById('f-travelers').value),
+    travel_style: document.getElementById('f-style').value,
+    notes: document.getElementById('f-notes').value
+  };
+
+  await fetch(API + "/add_trip", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify(trip)
+  });
+
+  showToast("Trip Added!");
+  loadTrips();
+  showView('list');
+}
+
+// ---------------- DELETE ----------------
+async function executeDelete(id) {
+  await fetch(API + "/delete_trip/" + id, {
+    method: "DELETE"
+  });
+
+  showToast("Deleted!");
+  loadTrips();
+}
+
+async function fetchHotels(destination, budget) {
+  const res = await fetch("http://127.0.0.1:5000/get_hotels", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ destination, budget })
+  });
+
+  return await res.json();
+}
+
+// ---------------- DETAIL ----------------
+
+async function showDetail(id) {
+  try {
+    const trip = allTrips.find(t => t.__backendId === id);
+
+    const res = await fetch(API + "/generate_itinerary", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        destination: trip.destination,
+        days: 3,
+        style: trip.travel_style,
+        budget: trip.budget
+      })
+    });
+
+    const data = await res.json();
+
+    let html = `
+      <h2 style="color:white">${trip.trip_name}</h2>
+      <p style="color:#94a3b8">${trip.destination}</p>
+    `;
+
+    // itinerary
+    if (data.itinerary) {
+      data.itinerary.forEach(day => {
+        html += `
+          <p style="color:#ccc">
+            Day ${day.day}: ${day.morning}, ${day.afternoon}, ${day.evening}
+          </p>
+        `;
+      });
+    }
+
+    // hotels
+    const hotels = await fetchHotels(trip.destination, trip.budget);
+
+    html += "<h3 style='margin-top:20px'>Hotels</h3>";
+
+    hotels.forEach(hotel => {
+      html += `
+        <div class="trip-card">
+          <h4>${hotel.name}</h4>
+          <p>₹${hotel.price}</p>
+          <button onclick="pay(${hotel.price})">Book</button>
+        </div>
+      `;
+    });
+
+    document.getElementById("detail-content").innerHTML = html;
+    showView('detail');
+
+  } catch (err) {
+    console.error(err);
+    alert("Error loading trip details");
+  }
+}
+
+// ---------------- CHATBOT ----------------
+async function handleChatSubmit(e) {
+  e.preventDefault();
+
+  const input = document.getElementById("chat-input");
+  const msg = input.value;
+
+  addChatMessage(msg, "user");
+  input.value = "";
+
+  const res = await fetch(API + "/chat", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({ message: msg })
+  });
+
+  const data = await res.json();
+  addChatMessage(data.reply, "bot");
+}
+
+function addChatMessage(text, sender) {
+  const msgs = document.getElementById('chat-messages');
+  const msg = document.createElement('div');
+  msg.innerHTML = `<b>${sender}:</b> ${text}`;
+  msgs.appendChild(msg);
+}
+
+function toggleChat() {
+  const chatView = document.getElementById('view-chat');
+  chatView.classList.toggle('hidden');
+}
+
+function handleProfileSubmit(e) {
+  e.preventDefault();
+  showToast('Profile saved successfully!');
+  showView('profile');
+}
+
+function startCheckout(plan, price) {
+  document.getElementById('checkout-plan').textContent = plan;
+  document.getElementById('checkout-price').textContent = `$${price.toFixed(2)}`;
+  document.getElementById('success-plan').textContent = plan;
+  showView('checkout');
+}
+
+function handleCheckoutSubmit(e) {
+  e.preventDefault();
+  document.getElementById('payment-success').classList.remove('hidden');
+  showToast('Payment completed. Enjoy Premium access!');
+}
+
+// INIT
+loadTrips();
+
+function pay() {
+  var options = {
+    key: "rzp_test_SjPQxFwxmdNpuQ",   // your key
+    amount: 99900,           // ₹999 (in paise)
+    currency: "INR",
+    name: "Wanderlust",
+    description: "Trip Booking",
+
+    handler: function (response) {
+      alert("Payment Successful!");
+    }
+  };
+
+  var rzp = new Razorpay(options);
+  rzp.open();
+}
+</script>
+</body>
+</html>
