@@ -390,7 +390,7 @@ async function executeDelete(id) {
 }
 
 async function fetchHotels(destination, budget) {
-  const res = await fetch("http://127.0.0.1:5000/get_hotels", {
+  const res = await fetch(API + "/get_hotels", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ destination, budget })
