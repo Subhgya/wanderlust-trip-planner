@@ -4,7 +4,10 @@ An AI-powered Full Stack Travel Planning Web Application that helps users genera
 
 🚀 Live Demo
 🌐 Frontend: https://your-netlify-link.netlify.app
+
 🔗 Backend API: https://wanderlust-trip-planner.onrender.com
+
+
 🧠 Features
 ✈️ AI-generated travel itineraries
 🏨 Hotel recommendations based on budget & destination
